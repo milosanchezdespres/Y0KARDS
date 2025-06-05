@@ -16,6 +16,9 @@ int main()
     Color textcolor = to_color("#ffffff");
     Color textcolor2 = to_color("#632708");
 
+    //...
+
+
     while (RUNNING)
     {
         EVENTS;
@@ -30,7 +33,7 @@ int main()
 
         TEXT(fpsstr, 20, 20, textcolor, 2);
 
-        TEXT("Some text displayed on screen..", 0, 100, textcolor2, 1);
+        TEXTBOX("Some text displayed >>on screen..", T(0, 100, SCREEN_WIDTH, SCREEN_HEIGHT), textcolor2, 2);
 
         i += direction * 250 * delta;
 

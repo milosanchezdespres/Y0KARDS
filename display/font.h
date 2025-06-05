@@ -31,7 +31,7 @@ inline bool operator<(const Color& lhs, const Color& rhs) {
 }
 
 // FUNCTION: Get font surface for a character
-inline const Surface& get_font_surface(const char& l, int scale) {
+inline Surface get_font_surface(const char& l, float scale) {
     constexpr int LETTER_WIDTH = 16;
     constexpr int LETTER_HEIGHT = 16;
     constexpr int IMAGE_COLS = 8;
@@ -49,38 +49,19 @@ inline const Surface& get_font_surface(const char& l, int scale) {
         char_map_array + sizeof(char_map_array) / sizeof(char_map_array[0])
     );
 
-    constexpr int CHARSET_SIZE = sizeof(char_map_array) / sizeof(char_map_array[0]);
-
-    static Surface cached[CHARSET_SIZE][4] = {};
-    static bool surface_ready[CHARSET_SIZE][4] = {};
-
-    int s = scale < 1 ? 1 : (scale > 3 ? 3 : scale);
-
     auto it = char_index.find(l);
     if (it == char_index.end()) {
-        static Surface fallback[4] = {
-            {{0, 0, LETTER_WIDTH, LETTER_HEIGHT}, {1,1}},
-            {{0, 0, LETTER_WIDTH, LETTER_HEIGHT}, {2,2}},
-            {{0, 0, LETTER_WIDTH, LETTER_HEIGHT}, {3,3}},
-            {{0, 0, LETTER_WIDTH, LETTER_HEIGHT}, {4,4}}
-        };
-        return fallback[s-1];
+        return { {0, 0, LETTER_WIDTH, LETTER_HEIGHT}, {scale, scale} };
     }
 
     int index = it->second;
+    int col = index % IMAGE_COLS;
+    int row = index / IMAGE_COLS;
 
-    if (!surface_ready[index][s-1]) {
-        int col = index % IMAGE_COLS;
-        int row = index / IMAGE_COLS;
-
-        cached[index][s-1] = {
-            { float(col * LETTER_WIDTH), float(row * LETTER_HEIGHT), LETTER_WIDTH, LETTER_HEIGHT },
-            {float(s), float(s)}
-        };
-        surface_ready[index][s-1] = true;
-    }
-
-    return cached[index][s-1];
+    return {
+        { float(col * LETTER_WIDTH), float(row * LETTER_HEIGHT), LETTER_WIDTH, LETTER_HEIGHT },
+        {scale, scale}
+    };
 }
 
 // FUNCTION: Load colorized font texture
@@ -153,7 +134,6 @@ inline std::pair<float, float> compute_char_offset(char c) {
         case 'J': return {2.0f, 1.2f};
         case 'M': case 'W': return {0.2f, 4.0f};
         case ' ': return {0.0f, 8.0f};
-        // Example: tighter
         case 'A': case 'V': return {0.3f, 0.8f};
         case 'T': return {0.8f, 1.0f};
         default: return {1.0f, 1.0f};
@@ -161,7 +141,7 @@ inline std::pair<float, float> compute_char_offset(char c) {
 }
 
 // FUNCTION: Cached spacing
-inline std::pair<float, float> get_char_spacing(char c, int scale) {
+inline std::pair<float, float> get_char_spacing(char c, float scale) {
     static std::unordered_map<char, std::pair<float, float>> spacing_cache;
 
     char uc = std::toupper(c);
@@ -177,95 +157,142 @@ inline std::pair<float, float> get_char_spacing(char c, int scale) {
     return {offs.first * scale, offs.second * scale};
 }
 
-// FUNCTION: Print single-line colored text
-inline void draw_text(const char* text, float x, float y, const Color& color, int scale) {
+// FUNCTION: Print single-line colored text with >> as newline
+inline void draw_text(const char* text, float x, float y, const Color& color, float scale) {
     ensure_font_loaded();
     set_font_color(color);
 
-    int xoffset = 0;
-    for (const char* p = text; *p; ++p) {
+    float xoffset = 0;
+    float yoffset = 0;
+    for (const char* p = text; *p; ) {
+        // Check for >> newline token
+        if (p[0] == '>' && p[1] == '>') {
+            xoffset = 0;
+            yoffset += 16.0f * scale;
+            p += 2;
+            continue;
+        }
+
         if (*p != ' ') {
             char uc = std::toupper(*p);
             auto [l_off, r_off] = get_char_spacing(uc, scale);
-            blit(current_font, get_font_surface(uc, scale), x + xoffset + l_off, y);
-            xoffset += (16 * scale) - r_off;
+            blit(current_font, get_font_surface(uc, scale), x + xoffset + l_off, y + yoffset);
+            xoffset += (16.0f * scale) - r_off;
         } else {
-            xoffset += 8 * scale;
+            xoffset += 8.0f * scale;
         }
+        ++p;
     }
 }
 
-// FUNCTION: Multiline colored text in box
-inline void draw_textbox(const char* text, const TextRegion& region, Color& color, int scale) {
+// FUNCTION: Multiline colored text in box with >> as newline
+inline void draw_textbox(const char* text, const TextRegion& region, Color& color, float scale) {
     ensure_font_loaded();
     set_font_color(color);
 
-    const int w = 16 * scale;
-    const int h = 16 * scale;
+    const float w = 16.0f * scale;
+    const float h = 16.0f * scale;
 
     float xpos = 0, ypos = 0;
 
-    for (const char* p = text; *p; ++p) {
+    for (const char* p = text; *p; ) {
+        // Check for >> newline token
+        if (p[0] == '>' && p[1] == '>') {
+            xpos = 0;
+            ypos += h;
+            if (ypos + h > region.height) break;
+            p += 2;
+            continue;
+        }
+
         if (*p == '\n' || (xpos + w > region.width && *p != ' ')) {
             xpos = 0;
             ypos += h;
             if (ypos + h > region.height) break;
-            if (*p == '\n') continue;
+            if (*p == '\n') {
+                ++p;
+                continue;
+            }
         }
 
         if (*p == ' ') {
-            xpos += 10 * scale;
+            xpos += 10.0f * scale;
+            ++p;
             continue;
         }
 
         char uc = std::toupper(*p);
         blit(current_font, get_font_surface(uc, scale), region.x + xpos, region.y + ypos);
         xpos += w;
+        ++p;
     }
 }
 
-// FUNCTION: Multiline uncolored font rendering
-inline void draw_raw_textbox(const char* text, const TextRegion& region, int scale) {
+// FUNCTION: Multiline uncolored font rendering with >> as newline
+inline void draw_raw_textbox(const char* text, const TextRegion& region, float scale) {
     ensure_raw_font_loaded();
 
-    const int w = 16 * scale;
-    const int h = 16 * scale;
+    const float w = 16.0f * scale;
+    const float h = 16.0f * scale;
 
     float xpos = 0, ypos = 0;
 
-    for (const char* p = text; *p; ++p) {
+    for (const char* p = text; *p; ) {
+        // Check for >> newline token
+        if (p[0] == '>' && p[1] == '>') {
+            xpos = 0;
+            ypos += h;
+            if (ypos + h > region.height) break;
+            p += 2;
+            continue;
+        }
+
         if (*p == '\n' || (xpos + w > region.width && *p != ' ')) {
             xpos = 0;
             ypos += h;
             if (ypos + h > region.height) break;
-            if (*p == '\n') continue;
+            if (*p == '\n') {
+                ++p;
+                continue;
+            }
         }
 
         if (*p == ' ') {
-            xpos += 10 * scale;
+            xpos += 10.0f * scale;
+            ++p;
             continue;
         }
 
         char uc = std::toupper(*p);
         blit(raw_font, get_font_surface(uc, scale), region.x + xpos, region.y + ypos);
         xpos += w;
+        ++p;
     }
 }
 
-// FUNCTION: One-line uncolored font
-inline void draw_raw_text(const char* text, float x, float y, int scale) {
+// FUNCTION: One-line uncolored font with >> as newline (rare usage, splits line)
+inline void draw_raw_text(const char* text, float x, float y, float scale) {
     ensure_raw_font_loaded();
 
-    int xoffset = 0;
-    for (const char* p = text; *p; ++p) {
+    float xoffset = 0;
+    float yoffset = 0;
+    for (const char* p = text; *p; ) {
+        if (p[0] == '>' && p[1] == '>') {
+            xoffset = 0;
+            yoffset += 16.0f * scale;
+            p += 2;
+            continue;
+        }
+
         if (*p != ' ') {
             char uc = std::toupper(*p);
             auto [l_off, r_off] = get_char_spacing(uc, scale);
-            blit(raw_font, get_font_surface(uc, scale), x + xoffset + l_off, y);
-            xoffset += (16 * scale) - r_off;
+            blit(raw_font, get_font_surface(uc, scale), x + xoffset + l_off, y + yoffset);
+            xoffset += (16.0f * scale) - r_off;
         } else {
-            xoffset += 8 * scale;
+            xoffset += 8.0f * scale;
         }
+        ++p;
     }
 }
 
