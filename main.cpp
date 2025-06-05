@@ -1,5 +1,5 @@
 #include "utils/window.h"
-#include "utils/bmp.h"
+#include "utils/texture2d.h"
 
 int main()
 {
@@ -7,8 +7,7 @@ int main()
 
     window("YoKards", 640, 480);
 
-    BMP* test = new BMP("player/playerwalk.bmp");
-    Texture* texture = new Texture(test);
+    Texture2D* player_walk = new Texture2D("player/playerwalk.bmp");
 
     while (RUNNING)
     {
@@ -16,7 +15,11 @@ int main()
 
         CLEAR_BUFFER;
 
-        blit(texture, 10, 10);
+        blit(player_walk, 50, 50);
+
+        blit(player_walk, {{16, 32, 16, 32}, {4, 4}}, 450, 200);
+
+        blit(player_walk, 150, 200);
 
         FLIP_BUFFER;
     }

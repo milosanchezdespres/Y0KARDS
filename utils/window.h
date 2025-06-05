@@ -25,6 +25,7 @@ inline void init(bool borderless = false)
     }
 
     if (borderless) glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+
 }
 #define INIT1 init()
 #define INIT2 init(true)

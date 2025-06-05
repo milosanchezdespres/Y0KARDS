@@ -186,7 +186,17 @@ static GLuint create_shader_program(const char* vertex_source, const char* fragm
     return program;
 }
 
-struct Texture
+extern const float origin_vertices[24] = {
+    -1.0f,  1.0f, 0.0f, 0.0f,
+    -1.0f, -1.0f, 0.0f, 1.0f,
+        1.0f, -1.0f, 1.0f, 1.0f,
+
+    -1.0f,  1.0f, 0.0f, 0.0f,
+        1.0f, -1.0f, 1.0f, 1.0f,
+        1.0f,  1.0f, 1.0f, 0.0f
+};
+
+struct GLTexture
 {
     int width, height;
     GLuint gl_index;
@@ -219,8 +229,8 @@ struct Texture
             FragColor = texture(tex, vTexCoord);
         }
     )";
-
-    Texture(const BMP* bmp)
+ 
+    GLTexture(const BMP* bmp)
     {
         width = bmp->width;
         height = bmp->height;
@@ -233,23 +243,12 @@ struct Texture
 
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, bmp->data);
 
-        float vertices[] =
-        {
-            -1.f,  1.f, 0.f, 0.f,  // top-left corner, texcoord y=0 (flipped)
-            -1.f, -1.f, 0.f, 1.f,  // bottom-left corner, texcoord y=1
-            1.f, -1.f, 1.f, 1.f,  // bottom-right corner, texcoord y=1
-
-            -1.f,  1.f, 0.f, 0.f,  // top-left corner, texcoord y=0
-            1.f, -1.f, 1.f, 1.f,  // bottom-right corner, texcoord y=1
-            1.f,  1.f, 1.f, 0.f   // top-right corner, texcoord y=0
-        };
-
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &VBO);
 
         glBindVertexArray(VAO);
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(origin_vertices), origin_vertices, GL_STATIC_DRAW);
 
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
@@ -264,7 +263,7 @@ struct Texture
     }
 };
 
-void blit(Texture* texture, float x, float y)
+void glblit(GLTexture* texture, float x, float y)
 {
     glUseProgram(texture->shader_program);
 
