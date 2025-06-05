@@ -28,9 +28,9 @@ int main()
 
         fpsstr = ("FPS :" + to_string(fps)).c_str();
 
-        TEXT(fpsstr, 20, 20, textcolor2, 2);
+        TEXT(fpsstr, 20, 20, textcolor, 2);
 
-        RTBOX("This is some text displayed on screen..", T(0, 100, SCREEN_WIDTH, SCREEN_HEIGHT), 1.5);
+        TEXT("Some text displayed on screen..", 0, 100, textcolor2, 1);
 
         i += direction * 250 * delta;
 

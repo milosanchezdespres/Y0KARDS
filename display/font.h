@@ -146,28 +146,23 @@ inline void set_font_color(const Color& color) {
 }
 
 // FUNCTION: Manual spacing adjustment per character
-inline std::pair<int,int> compute_char_offset(char c) {
+inline std::pair<float, float> compute_char_offset(char c) {
     c = std::toupper(c);
     switch (c) {
-        case 'A': case 'B': case 'D': case 'E': case 'F': case 'H':
-        case 'K': case 'N': case 'R': case 'T': case 'U': case 'V':
-        case 'X': case 'Y': return {0, 2};
-        case 'C': case 'G': case 'O': case 'Q': case 'S': case 'Z':
-        case '2': case '3': case '5': case '6': case '8': case '9':
-        case '?': return {1, 2};
-        case 'I': case '1': case '.': case ',': case ':': case '!': return {3, 3};
-        case 'J': return {2, 3};
-        case 'L': return {2, 2};
-        case 'M': case 'W': return {0, 3};
-        case '0': case '4': case '7': return {0, 2};
-        case ' ': return {0, 8};
-        default: return {0, 1};
+        case 'I': case '1': case '.': case ',': case ':': case '!': return {-3, 7};
+        case 'J': return {2.0f, 1.2f};
+        case 'M': case 'W': return {0.2f, 4.0f};
+        case ' ': return {0.0f, 8.0f};
+        // Example: tighter
+        case 'A': case 'V': return {0.3f, 0.8f};
+        case 'T': return {0.8f, 1.0f};
+        default: return {1.0f, 1.0f};
     }
 }
 
 // FUNCTION: Cached spacing
-inline std::pair<int,int> get_char_spacing(char c, int scale) {
-    static std::unordered_map<char, std::pair<int,int>> spacing_cache;
+inline std::pair<float, float> get_char_spacing(char c, int scale) {
+    static std::unordered_map<char, std::pair<float, float>> spacing_cache;
 
     char uc = std::toupper(c);
     auto it = spacing_cache.find(uc);
@@ -178,6 +173,7 @@ inline std::pair<int,int> get_char_spacing(char c, int scale) {
 
     auto offs = compute_char_offset(uc);
     spacing_cache[uc] = offs;
+
     return {offs.first * scale, offs.second * scale};
 }
 
