@@ -2,9 +2,7 @@
 
 int main()
 {
-    INIT2;
-
-    window("YoKards", 640, 480);
+    window("YoKards", 640, 480, 1);
 
     load(player_walk, "player/playerwalk.bmp");
     load(player_walk2, "player/playerwalk.bmp");
@@ -30,9 +28,9 @@ int main()
 
         fpsstr = ("FPS :" + to_string(fps)).c_str();
 
-        printb("This is some text displayed on screen..", 0, 100, SCREEN_WIDTH, SCREEN_HEIGHT, textcolor2, 1.5);
+        TEXT(fpsstr, 20, 20, textcolor2, 2);
 
-        print(fpsstr, 20, 20, textcolor, 2);
+        RTBOX("This is some text displayed on screen..", T(0, 100, SCREEN_WIDTH, SCREEN_HEIGHT), 1.5);
 
         i += direction * 250 * delta;
 

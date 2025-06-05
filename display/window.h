@@ -85,8 +85,10 @@ inline void cap_fps(float target_fps)
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
-inline void window(string title, int width, int height)
+inline void window(string title, int width, int height, int not_borderless = 0)
 {
+    if(not_borderless == 0) INIT1; else INIT2;
+
     GLFWwindow* win = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
     
     if (!win)
