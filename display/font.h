@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <map>
 #include <cctype>
 using namespace std;
 
@@ -66,38 +67,69 @@ inline const Surface& letter(const char& l, int scale)
 inline bool _font_init = false;
 inline Texture2D* font = nullptr;
 
+inline Texture2D* original_font = nullptr;
+
+inline std::map<Color, Texture2D*> colored_font_cache;
+
+inline bool operator<(const Color& lhs, const Color& rhs) {
+    if (lhs.r != rhs.r) return lhs.r < rhs.r;
+    if (lhs.g != rhs.g) return lhs.g < rhs.g;
+    if (lhs.b != rhs.b) return lhs.b < rhs.b;
+    return lhs.a < rhs.a;
+}
+
+inline Texture2D* get_colored_font_texture(const Color& text_color)
+{
+    if (!original_font) {
+        original_font = new Texture2D("font.bmp");
+        textures.push_back(original_font);
+        texture_aliases["font"] = textures.size() - 1;
+    }
+
+    auto it = colored_font_cache.find(text_color);
+    if (it != colored_font_cache.end())
+        return it->second;
+
+    auto orig_img = *original_font->image;
+    BMP new_bmp = orig_img;
+
+    int w = new_bmp.width;
+    int h = new_bmp.height;
+
+    for (int j = 0; j < h; ++j) {
+        int rowStart = j * w;
+        for (int i = 0; i < w; ++i) {
+            int pos = rowStart + i;
+            if (new_bmp.map[pos] != 0) {
+                new_bmp.set(i, j, text_color);
+            }
+        }
+    }
+
+    Texture2D* new_tex = new Texture2D(&new_bmp);
+    textures.push_back(new_tex);
+    colored_font_cache[text_color] = new_tex;
+
+    return new_tex;
+}
+
+inline Texture2D* current_font_texture = nullptr;
+
 inline void _font_init_check()
 {
-    if (!_font_init)
-    {
-        font = new Texture2D("font.bmp");
-        textures.push_back(font);
+    if (!original_font) {
+        original_font = new Texture2D("font.bmp");
+        textures.push_back(original_font);
         texture_aliases["font"] = textures.size() - 1;
-        _font_init = true;
     }
 }
 
 inline void _set_font_color_if_needed(const Color& text_color)
 {
-    if (text_color != __fontcolor)
-    {
-        int w = font->image->width;
-        int h = font->image->height;
-        auto& img = *font->image;
-
-        for (int j = 0; j < h; ++j)
-        {
-            int rowStart = j * w;
-            for (int i = 0; i < w; ++i)
-            {
-                int pos = rowStart + i;
-                if (img.map[pos] != 0)
-                    img.set(i, j, text_color);
-            }
-        }
-        font->refresh();
-
-        __fontcolor = text_color;
+    Texture2D* new_font = get_colored_font_texture(text_color);
+    if (current_font_texture != new_font) {
+        current_font_texture = new_font;
+        font = current_font_texture;
     }
 }
 

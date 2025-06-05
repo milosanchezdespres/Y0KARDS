@@ -2,6 +2,8 @@
 
 #include "bmp.h"
 
+#define S(tilex, tiley, tilew, tileh, scalex, scaley) {{tilex, tiley, tilew, tileh}, {scalex, scaley}}
+
 struct Texture2D
 {
     BMP* image;
@@ -11,6 +13,14 @@ struct Texture2D
     Texture2D(const char* path)
     {
         image = new BMP(path);
+        data = new GLTexture(image);
+        width = data->width;
+        height = data->height;
+    }
+
+    Texture2D(BMP* bmp)
+    {
+        image = bmp;
         data = new GLTexture(image);
         width = data->width;
         height = data->height;
@@ -96,4 +106,15 @@ void blit(Texture2D* texture, const Surface& surface, float x, float y)
     // Restore original vertices to avoid side effects on next draw
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(origin_vertices), origin_vertices);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+
+void blit(Texture2D* texture, float x, float y, float scalex, float scaley = -1)
+{
+    if(scaley == -1) scaley = scalex;
+
+    int width = texture->image->width;
+    int height = texture->image->height;
+
+    blit(texture, S(0, 0, width, height, scalex, scaley), x, y);
 }

@@ -7,6 +7,7 @@ int main()
     window("YoKards", 640, 480);
 
     load(player_walk, "player/playerwalk.bmp");
+    load(player_walk2, "player/playerwalk.bmp");
     //.....
 
     float i = 0;
@@ -15,6 +16,7 @@ int main()
     const char* fpsstr = "";
 
     Color textcolor = to_color("#ffffff");
+    Color textcolor2 = to_color("#632708");
 
     while (RUNNING)
     {
@@ -24,9 +26,11 @@ int main()
 
         blit(player_walk, S(16, 0, 16, 32, 3, 3), i, 200);
 
+        blit(player_walk2, 40, 150, 2);
+
         fpsstr = ("FPS :" + to_string(fps)).c_str();
 
-        printb("This is some text displayed on screen..", 0, 100, SCREEN_WIDTH, SCREEN_HEIGHT, textcolor, 1.5);
+        printb("This is some text displayed on screen..", 0, 100, SCREEN_WIDTH, SCREEN_HEIGHT, textcolor2, 1.5);
 
         print(fpsstr, 20, 20, textcolor, 2);
 

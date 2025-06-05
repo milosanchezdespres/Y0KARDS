@@ -14,5 +14,3 @@ inline unordered_map<const char* , int> texture_aliases;
     Texture2D* alias = new Texture2D(path); \
     textures.push_back(alias); \
     texture_aliases[#alias] = textures.size() - 1;
-
-#define S(tilex, tiley, tilew, tileh, scalex, scaley) {{tilex, tiley, tilew, tileh}, {scalex, scaley}}
