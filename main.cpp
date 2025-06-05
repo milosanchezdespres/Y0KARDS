@@ -24,7 +24,9 @@ int main()
 
         fpsstr = ("FPS :" + to_string(fps)).c_str();
 
-        write(fpsstr, 20, 20);
+        boxwrite("This is a very long text and im trying to see if it indeed cuts when it needs to be cut !", 0, 100, SCREEN_WIDTH, SCREEN_HEIGHT, 2);
+
+        swrite(fpsstr, 20, 20, 2);
 
         i += direction * 250 * delta;
 
