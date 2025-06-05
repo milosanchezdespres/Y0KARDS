@@ -4,6 +4,7 @@
 
 #include "window.h"
 #include "assets.h"
+#include "font.h"
 //...
 
 inline void print(const char* txt) { std::cout << txt << std::endl; }
