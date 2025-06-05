@@ -25,10 +25,29 @@ struct Surface
     Point scale;
 };
 
-void blit(Texture2D* texture, float x, float y) { glblit(texture->data, x, y); }
+#define IGNORE_OUTBOUNDS_XY(texture, x, y) \
+    if ((x) + (texture)->width < 0 || (x) > SCREEN_WIDTH || (y) + (texture)->height < 0 || (y) > SCREEN_HEIGHT) \
+        return;
+
+#define IGNORE_OUTBOUNDS(texture, surface, x, y) \
+    do { \
+        float surf_w = (surface).data.width * (surface).scale.x; \
+        float surf_h = (surface).data.height * (surface).scale.y; \
+        if ((x) + surf_w < 0 || (x) > SCREEN_WIDTH || (y) + surf_h < 0 || (y) > SCREEN_HEIGHT) \
+            return; \
+    } while(0)
+   
+void blit(Texture2D* texture, float x, float y)
+{
+    IGNORE_OUTBOUNDS_XY(texture, x, y);
+
+    glblit(texture->data, x, y);
+}
 
 void blit(Texture2D* texture, const Surface& surface, float x, float y)
 {
+    IGNORE_OUTBOUNDS(texture, surface, x, y);
+
     float vertices[24];
     memcpy(vertices, origin_vertices, sizeof(vertices));
 
