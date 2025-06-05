@@ -130,7 +130,8 @@ inline void set_font_color(const Color& color) {
 inline std::pair<float, float> compute_char_offset(char c) {
     c = std::toupper(c);
     switch (c) {
-        case 'I': case '1': case '.': case ',': case ':': case '!': return {-3, 7};
+        case '.': return {1, 2};
+        case 'I': case '1': case ',': case ':': case '!': return {-3, 7};
         case 'J': return {2.0f, 1.2f};
         case 'M': case 'W': return {0.2f, 4.0f};
         case ' ': return {0.0f, 8.0f};
@@ -165,7 +166,6 @@ inline void draw_text(const char* text, float x, float y, const Color& color, fl
     float xoffset = 0;
     float yoffset = 0;
     for (const char* p = text; *p; ) {
-        // Check for >> newline token
         if (p[0] == '>' && p[1] == '>') {
             xoffset = 0;
             yoffset += 16.0f * scale;
@@ -185,18 +185,16 @@ inline void draw_text(const char* text, float x, float y, const Color& color, fl
     }
 }
 
-// FUNCTION: Multiline colored text in box with >> as newline
+// FUNCTION: Multiline colored text in box with >> as newline and spacing offsets
 inline void draw_textbox(const char* text, const TextRegion& region, Color& color, float scale) {
     ensure_font_loaded();
     set_font_color(color);
 
-    const float w = 16.0f * scale;
     const float h = 16.0f * scale;
 
     float xpos = 0, ypos = 0;
 
     for (const char* p = text; *p; ) {
-        // Check for >> newline token
         if (p[0] == '>' && p[1] == '>') {
             xpos = 0;
             ypos += h;
@@ -205,7 +203,7 @@ inline void draw_textbox(const char* text, const TextRegion& region, Color& colo
             continue;
         }
 
-        if (*p == '\n' || (xpos + w > region.width && *p != ' ')) {
+        if (*p == '\n' || (xpos + 16.0f * scale > region.width && *p != ' ')) {
             xpos = 0;
             ypos += h;
             if (ypos + h > region.height) break;
@@ -222,23 +220,22 @@ inline void draw_textbox(const char* text, const TextRegion& region, Color& colo
         }
 
         char uc = std::toupper(*p);
-        blit(current_font, get_font_surface(uc, scale), region.x + xpos, region.y + ypos);
-        xpos += w;
+        auto [l_off, r_off] = get_char_spacing(uc, scale);
+        blit(current_font, get_font_surface(uc, scale), region.x + xpos + l_off, region.y + ypos);
+        xpos += (16.0f * scale) - r_off;
         ++p;
     }
 }
 
-// FUNCTION: Multiline uncolored font rendering with >> as newline
+// FUNCTION: Multiline uncolored font rendering with >> as newline and spacing offsets
 inline void draw_raw_textbox(const char* text, const TextRegion& region, float scale) {
     ensure_raw_font_loaded();
 
-    const float w = 16.0f * scale;
     const float h = 16.0f * scale;
 
     float xpos = 0, ypos = 0;
 
     for (const char* p = text; *p; ) {
-        // Check for >> newline token
         if (p[0] == '>' && p[1] == '>') {
             xpos = 0;
             ypos += h;
@@ -247,7 +244,7 @@ inline void draw_raw_textbox(const char* text, const TextRegion& region, float s
             continue;
         }
 
-        if (*p == '\n' || (xpos + w > region.width && *p != ' ')) {
+        if (*p == '\n' || (xpos + 16.0f * scale > region.width && *p != ' ')) {
             xpos = 0;
             ypos += h;
             if (ypos + h > region.height) break;
@@ -264,8 +261,9 @@ inline void draw_raw_textbox(const char* text, const TextRegion& region, float s
         }
 
         char uc = std::toupper(*p);
-        blit(raw_font, get_font_surface(uc, scale), region.x + xpos, region.y + ypos);
-        xpos += w;
+        auto [l_off, r_off] = get_char_spacing(uc, scale);
+        blit(raw_font, get_font_surface(uc, scale), region.x + xpos + l_off, region.y + ypos);
+        xpos += (16.0f * scale) - r_off;
         ++p;
     }
 }
