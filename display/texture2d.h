@@ -15,6 +15,8 @@ struct Texture2D
         width = data->width;
         height = data->height;
     }
+
+    void refresh() { data->refresh(); }
 };
 
 struct Point { float x, y; };

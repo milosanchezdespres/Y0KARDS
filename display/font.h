@@ -28,32 +28,38 @@ inline const Surface& letter(const char& l, int scale = 1)
 
     constexpr int CHARSET_SIZE = sizeof(char_map_array) / sizeof(char_map_array[0]);
 
-    static const Surface fontSurface = { {0, 0, 128, 144}, {scale, scale} };
-    static Surface cache[CHARSET_SIZE] = {};
-    static bool initialized[CHARSET_SIZE] = {};
+    static Surface cache[CHARSET_SIZE][4] = {}; 
+    static bool initialized[CHARSET_SIZE][4] = {};
+
+    int s = scale > 3 ? 3 : scale < 1 ? 1 : scale; // Clamp scale 1..3
 
     auto it = char_index.find(l);
     if (it == char_index.end())
     {
-        static Surface missing = { {0, 0, LETTER_WIDTH, LETTER_HEIGHT}, {scale, scale} };
-        return missing;
+        static Surface missing[4] = {
+            {{0, 0, LETTER_WIDTH, LETTER_HEIGHT}, {1,1}},
+            {{0, 0, LETTER_WIDTH, LETTER_HEIGHT}, {2,2}},
+            {{0, 0, LETTER_WIDTH, LETTER_HEIGHT}, {3,3}},
+            {{0, 0, LETTER_WIDTH, LETTER_HEIGHT}, {4,4}}
+        };
+        return missing[s-1];
     }
 
     int index = it->second;
 
-    if (!initialized[index])
+    if (!initialized[index][s-1])
     {
         int col = index % IMAGE_COLS;
         int row = index / IMAGE_COLS;
 
-        cache[index] = {
+        cache[index][s-1] = {
             { float(col * LETTER_WIDTH), float(row * LETTER_HEIGHT), LETTER_WIDTH, LETTER_HEIGHT },
-            fontSurface.scale
+            {float(s), float(s)}
         };
-        initialized[index] = true;
+        initialized[index][s-1] = true;
     }
 
-    return cache[index];
+    return cache[index][s-1];
 }
 
 #define C(l, scale) letter(l, scale)
@@ -61,23 +67,7 @@ inline const Surface& letter(const char& l, int scale = 1)
 inline bool _font_init = false;
 inline Texture2D* font = nullptr;
 
-inline void _write(const char& l, float x, float y, int scale = 1)
-{
-    if(_font_init == false)
-    {
-        font = new Texture2D("font.bmp");
-        textures.push_back(font);
-        texture_aliases["font"] = textures.size() - 1;
-        
-        _font_init = true;
-    }
-
-    blit(font, C(l, scale), x, y);
-
-}
-#define cwrite(l, x, y, scale) _write(l, x, y, scale)
-
-inline void _write(const char* text, float x, float y, int scale = 1)
+inline void _font_init_check()
 {
     if(!_font_init)
     {
@@ -86,6 +76,43 @@ inline void _write(const char* text, float x, float y, int scale = 1)
         texture_aliases["font"] = textures.size() - 1;
         _font_init = true;
     }
+}
+
+inline void _set_font_color_if_needed(const Color& text_color)
+{
+    if(text_color != __fontcolor)
+    {
+        int w = font->image->width;
+        int h = font->image->height;
+        auto& img = *font->image;
+
+        for (int j = 0; j < h; ++j)
+        {
+            int rowStart = j * w;
+            for (int i = 0; i < w; ++i)
+            {
+                int pos = rowStart + i;
+                if (img.map[pos] != 0)
+                    img.set(i, j, text_color);
+            }
+        }
+        font->refresh();
+
+        __fontcolor = text_color;
+    }
+}
+
+inline void _write(const char& l, float x, float y, int scale = 1)
+{
+    _font_init_check();
+    blit(font, C(l, scale), x, y);
+}
+#define cwrite(l, x, y, scale) _write(l, x, y, scale)
+
+inline void _write(const char* text, float x, float y, const Color& text_color, int scale = 1)
+{
+    _font_init_check();
+    _set_font_color_if_needed(text_color);
 
     int spacex = 0;
 
@@ -100,9 +127,8 @@ inline void _write(const char* text, float x, float y, int scale = 1)
         else spacex += 8; 
     }
 }
-
-#define swrite(txt, x, y, scale) _write(txt, x, y, scale)
-#define write(txt, x, y) _write(txt, x, y)
+#define swrite(txt, x, y, text_color, scale) _write(txt, x, y, text_color, scale)
+#define write(txt, x, text_color, y) _write(txt, x, y, text_color)
 
 struct TextBox
 {
@@ -110,15 +136,10 @@ struct TextBox
     int width, height;
 };
 
-inline void _boxwrite(const char* text, const TextBox& box, int scale = 1)
+inline void _boxwrite(const char* text, const TextBox& box, Color& text_color, int scale = 1)
 {
-    if (!_font_init)
-    {
-        font = new Texture2D("font.bmp");
-        textures.push_back(font);
-        texture_aliases["font"] = textures.size() - 1;
-        _font_init = true;
-    }
+    _font_init_check();
+    _set_font_color_if_needed(text_color);
 
     const int char_width = 16 * scale;
     const int char_height = 16 * scale;
@@ -146,10 +167,8 @@ inline void _boxwrite(const char* text, const TextBox& box, int scale = 1)
         }
 
         char uc = std::toupper(*p);
-        const auto& glyph = C(uc, scale);
-        blit(font, glyph, box.x + xpos, box.y + ypos);
+        blit(font, C(uc, scale), box.x + xpos, box.y + ypos);
         xpos += char_width;
     }
 }
-
-#define boxwrite(txt, x, y, width, height, scale) _boxwrite(txt, {x, y, width, height}, scale)
+#define boxwrite(txt, x, y, width, height, text_color, scale) _boxwrite(txt, {x, y, width, height}, text_color, scale)

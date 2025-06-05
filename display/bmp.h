@@ -204,6 +204,8 @@ struct GLTexture
     GLuint VAO, VBO;
     GLuint shader_program;
 
+    const BMP* _bmp_ref;
+
     const char* vertex_shader_src = R"(
         #version 330 core
         layout(location = 0) in vec2 aPos;
@@ -260,6 +262,14 @@ struct GLTexture
         glBindVertexArray(0);
 
         shader_program = create_shader_program(vertex_shader_src, fragment_shader_src);
+
+        _bmp_ref = bmp;
+    }
+
+    void refresh()
+    {
+        glBindTexture(GL_TEXTURE_2D, gl_index);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, _bmp_ref->data);
     }
 };
 

@@ -1,11 +1,20 @@
 #pragma once
 
 #include <stdlib.h>
+#include <cmath>
 
 struct Color
 {
     float r, g, b, a;
     const char* hex;
+
+    bool operator!=(const Color& rhs) const
+    {
+        const float epsilon = 0.01f;
+        return (fabs(r - rhs.r) > epsilon) ||
+               (fabs(g - rhs.g) > epsilon) ||
+               (fabs(b - rhs.b) > epsilon);
+    }
 };
 
 struct RGB { float r, g, b, a; };
@@ -30,5 +39,6 @@ Color to_color(const char* hex, float a = 255)
 }
 
 inline Color bgc = to_color("#279dff");
+inline Color __fontcolor = to_color("#000000");
 inline RGB bgcolor = { bgc.r, bgc.g, bgc.b, bgc.a };
 #define BGCOLOR bgcolor
