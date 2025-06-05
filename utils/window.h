@@ -49,6 +49,9 @@ inline void window(string title, int width, int height)
     
     glfwSetFramebufferSizeCallback(screen.handle, framebuffer_size_callback);
     glViewport(0, 0, screen.width, screen.height);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)

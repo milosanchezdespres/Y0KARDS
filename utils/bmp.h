@@ -101,7 +101,8 @@ struct BMP
             data[o + 0] = (uint8_t)(c.r * 255);
             data[o + 1] = (uint8_t)(c.g * 255);
             data[o + 2] = (uint8_t)(c.b * 255);
-            data[o + 3] = (uint8_t)(c.a * 255);
+
+            data[o + 3] = (map[i] == 0) ? 0 : (uint8_t)(c.a * 255);
         }
     }
 
