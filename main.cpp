@@ -12,6 +12,8 @@ int main()
     float i = 0;
     int direction = 1; // 1 = moving right, -1 = moving left
 
+    const char* fpsstr = "";
+
     while (RUNNING)
     {
         EVENTS;
@@ -20,9 +22,9 @@ int main()
 
         blit(player_walk, S(16, 0, 16, 32, 3, 3), i, 200);
 
-        write('A', 10, 10);
-        write('B', 26, 10);
-        write('C', 42, 10);
+        fpsstr = ("FPS :" + to_string(fps)).c_str();
+
+        write(fpsstr, 20, 20);
 
         i += direction * 250 * delta;
 

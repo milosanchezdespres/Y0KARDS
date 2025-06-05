@@ -73,6 +73,9 @@
         "__tree": "cpp",
         "map": "cpp",
         "ranges": "cpp",
-        "deque": "cpp"
+        "deque": "cpp",
+        "valarray": "cpp",
+        "set": "cpp",
+        "unordered_set": "cpp"
     }
 }

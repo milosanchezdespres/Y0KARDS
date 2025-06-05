@@ -1,6 +1,8 @@
 #pragma once
 
 #include <unordered_map>
+#include <cctype>
+#include <cstdio>
 using namespace std;
 
 #include "assets.h"
@@ -73,4 +75,30 @@ inline void _write(const char& l, float x, float y)
     blit(font, C(l), x, y);
 
 }
-#define write(l, x, y) _write(l, x, y)
+#define cwrite(l, x, y) _write(l, x, y)
+
+inline void _write(const char* text, float x, float y)
+{
+    if(!_font_init)
+    {
+        font = new Texture2D("font.bmp");
+        textures.push_back(font);
+        texture_aliases["font"] = textures.size() - 1;
+        _font_init = true;
+    }
+
+    int spacex = 0;
+
+    for (const char* p = text; *p; ++p)
+    {
+        if (*p != ' ')
+        {
+            char uc = std::toupper(*p);
+            blit(font, C(uc), x + spacex, y);
+            spacex += 16;
+        }
+        else spacex += 8; 
+    }
+}
+
+#define write(txt, x, y) _write(txt, x, y)
