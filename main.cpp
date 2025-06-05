@@ -14,7 +14,7 @@ int main()
 
     const char* fpsstr = "";
 
-    Color textcolor = to_color("#ff7300");
+    Color textcolor = to_color("#ffffff");
 
     while (RUNNING)
     {
@@ -26,9 +26,9 @@ int main()
 
         fpsstr = ("FPS :" + to_string(fps)).c_str();
 
-        boxwrite("This is a very long text and im trying to see if it indeed cuts when it needs to be cut !", 0, 100, SCREEN_WIDTH, SCREEN_HEIGHT, textcolor, 2);
+        printb("This is some text displayed on screen..", 0, 100, SCREEN_WIDTH, SCREEN_HEIGHT, textcolor, 1.5);
 
-        swrite(fpsstr, 20, 20, textcolor, 2);
+        print(fpsstr, 20, 20, textcolor, 2);
 
         i += direction * 250 * delta;
 

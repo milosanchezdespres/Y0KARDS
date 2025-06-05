@@ -2,12 +2,11 @@
 
 #include <unordered_map>
 #include <cctype>
-#include <cstdio>
 using namespace std;
 
 #include "assets.h"
 
-inline const Surface& letter(const char& l, int scale = 1)
+inline const Surface& letter(const char& l, int scale)
 {
     constexpr int LETTER_WIDTH = 16;
     constexpr int LETTER_HEIGHT = 16;
@@ -28,10 +27,10 @@ inline const Surface& letter(const char& l, int scale = 1)
 
     constexpr int CHARSET_SIZE = sizeof(char_map_array) / sizeof(char_map_array[0]);
 
-    static Surface cache[CHARSET_SIZE][4] = {}; 
+    static Surface cache[CHARSET_SIZE][4] = {};
     static bool initialized[CHARSET_SIZE][4] = {};
 
-    int s = scale > 3 ? 3 : scale < 1 ? 1 : scale; // Clamp scale 1..3
+    int s = scale < 1 ? 1 : (scale > 3 ? 3 : scale);
 
     auto it = char_index.find(l);
     if (it == char_index.end())
@@ -69,7 +68,7 @@ inline Texture2D* font = nullptr;
 
 inline void _font_init_check()
 {
-    if(!_font_init)
+    if (!_font_init)
     {
         font = new Texture2D("font.bmp");
         textures.push_back(font);
@@ -80,7 +79,7 @@ inline void _font_init_check()
 
 inline void _set_font_color_if_needed(const Color& text_color)
 {
-    if(text_color != __fontcolor)
+    if (text_color != __fontcolor)
     {
         int w = font->image->width;
         int h = font->image->height;
@@ -102,33 +101,99 @@ inline void _set_font_color_if_needed(const Color& text_color)
     }
 }
 
-inline void _write(const char& l, float x, float y, int scale = 1)
+inline std::pair<int,int> compute_offset(char c)
 {
-    _font_init_check();
-    blit(font, C(l, scale), x, y);
+    c = std::toupper(c);
+    switch (c)
+    {
+        case 'A': return {0, 2};
+        case 'B': return {0, 2};
+        case 'C': return {1, 2};
+        case 'D': return {0, 2};
+        case 'E': return {0, 2};
+        case 'F': return {0, 2};
+        case 'G': return {1, 2};
+        case 'H': return {0, 2};
+        case 'I': return {4, 4};
+        case 'J': return {2, 3};
+        case 'K': return {0, 2};
+        case 'L': return {2, 2};
+        case 'M': return {0, 3};
+        case 'N': return {0, 2};
+        case 'O': return {1, 2};
+        case 'P': return {0, 2};
+        case 'Q': return {1, 2};
+        case 'R': return {0, 2};
+        case 'S': return {1, 2};
+        case 'T': return {1, 4};
+        case 'U': return {0, 2};
+        case 'V': return {0, 2};
+        case 'W': return {0, 3};
+        case 'X': return {0, 2};
+        case 'Y': return {0, 2};
+        case 'Z': return {1, 2};
+        case '0': return {1, 2};
+        case '1': return {3, 3};
+        case '2': return {1, 2};
+        case '3': return {1, 2};
+        case '4': return {0, 2};
+        case '5': return {1, 2};
+        case '6': return {1, 2};
+        case '7': return {0, 2};
+        case '8': return {1, 2};
+        case '9': return {1, 2};
+        case '.': return {3, 3};
+        case ',': return {3, 3};
+        case ':': return {3, 3};
+        case '!': return {3, 3};
+        case '?': return {1, 3};
+        case ' ': return {0, 8};
+        default: return {0, 1};
+    }
 }
-#define cwrite(l, x, y, scale) _write(l, x, y, scale)
 
-inline void _write(const char* text, float x, float y, const Color& text_color, int scale = 1)
+inline std::pair<int,int> get_letter_offsets(char c, int scale)
+{
+    static std::unordered_map<char, std::pair<int,int>> cache;
+
+    char uc = std::toupper(c);
+
+    auto it = cache.find(uc);
+    if(it != cache.end())
+    {
+        auto [l, r] = it->second;
+        return {l * scale, r * scale};
+    }
+
+    auto offs = compute_offset(uc);
+    cache[uc] = offs;
+
+    return {offs.first * scale, offs.second * scale};
+}
+
+inline void _write(const char* text, float x, float y, const Color& text_color, int scale)
 {
     _font_init_check();
     _set_font_color_if_needed(text_color);
 
     int spacex = 0;
-
     for (const char* p = text; *p; ++p)
     {
         if (*p != ' ')
         {
             char uc = std::toupper(*p);
-            blit(font, C(uc, scale), x + spacex, y);
-            spacex += (16 * scale);
+            auto [leftOffset, rightOffset] = get_letter_offsets(uc, scale);
+            blit(font, C(uc, scale), x + spacex + leftOffset, y);
+            spacex += (16 * scale) - rightOffset;
         }
-        else spacex += 8; 
+        else
+        {
+            spacex += 8 * scale;
+        }
     }
 }
-#define swrite(txt, x, y, text_color, scale) _write(txt, x, y, text_color, scale)
-#define write(txt, x, text_color, y) _write(txt, x, y, text_color)
+
+#define print(txt, x, y, text_color, scale) _write(txt, x, y, text_color, scale)
 
 struct TextBox
 {
@@ -136,7 +201,7 @@ struct TextBox
     int width, height;
 };
 
-inline void _boxwrite(const char* text, const TextBox& box, Color& text_color, int scale = 1)
+inline void _boxwrite(const char* text, const TextBox& box, Color& text_color, int scale)
 {
     _font_init_check();
     _set_font_color_if_needed(text_color);
@@ -162,7 +227,7 @@ inline void _boxwrite(const char* text, const TextBox& box, Color& text_color, i
 
         if (*p == ' ')
         {
-            xpos += 8 * scale;
+            xpos += 10 * scale;
             continue;
         }
 
@@ -171,4 +236,5 @@ inline void _boxwrite(const char* text, const TextBox& box, Color& text_color, i
         xpos += char_width;
     }
 }
-#define boxwrite(txt, x, y, width, height, text_color, scale) _boxwrite(txt, {x, y, width, height}, text_color, scale)
+
+#define printb(txt, x, y, width, height, text_color, scale) _boxwrite(txt, {x, y, width, height}, text_color, scale)
