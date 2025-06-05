@@ -29,6 +29,11 @@ inline void init(bool borderless = false)
 #define INIT1 init()
 #define INIT2 init(true)
 
+#define SCREEN_WIDTH screen.width
+#define SCREEN_HEIGHT screen.height
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+
 inline void window(string title, int width, int height)
 {
     GLFWwindow* win = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
@@ -41,6 +46,16 @@ inline void window(string title, int width, int height)
 
     screen = { win, width, height };
     glfwMakeContextCurrent(screen.handle);
+    
+    glfwSetFramebufferSizeCallback(screen.handle, framebuffer_size_callback);
+    glViewport(0, 0, screen.width, screen.height);
+}
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    glViewport(0, 0, width, height);
+    screen.width = width;
+    screen.height = height;
 }
 
 inline bool window_is_open() { return !glfwWindowShouldClose(screen.handle); }
