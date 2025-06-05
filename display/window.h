@@ -2,6 +2,10 @@
 
 #include <GLFW/glfw3.h>
 
+#include <thread>
+#include <chrono>
+#include <deque>
+
 #include <iostream>
 using namespace std;
 
@@ -12,6 +16,7 @@ struct Screen
     GLFWwindow* handle;
     int width;
     int height;
+    float lastframetime;
 };
 
 inline Screen screen;
@@ -24,14 +29,59 @@ inline void init(bool borderless = false)
         return;
     }
 
-    if (borderless) glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+    glfwSwapInterval(1);
 
+    if (borderless) glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
 }
 #define INIT1 init()
 #define INIT2 init(true)
 
 #define SCREEN_WIDTH screen.width
 #define SCREEN_HEIGHT screen.height
+
+inline float _delta = 0.0f;
+inline float _current_frame = 0.0f;
+int _fps = 0;
+
+inline std::deque<float> delta_history;
+const size_t max_samples = 10;
+
+inline void _update_delta_time()
+{
+    _current_frame = glfwGetTime();
+    _delta = _current_frame - screen.lastframetime;
+
+    if (_delta < 1e-6f)
+        _delta = 1e-6f;
+
+    screen.lastframetime = _current_frame;
+
+    delta_history.push_back(_delta);
+    if (delta_history.size() > max_samples)
+        delta_history.pop_front();
+
+    float avg_delta = 0.0f;
+    for (auto d : delta_history)
+        avg_delta += d;
+    avg_delta /= delta_history.size();
+
+    _fps = static_cast<int>(1.0f / avg_delta);
+}
+
+#define delta _delta
+#define update_delta _update_delta_time()
+
+inline void cap_fps(float target_fps)
+{
+    float frame_duration = 1.0f / target_fps;
+    float sleep_time = frame_duration - _delta;
+
+    if (sleep_time > 0.0f)
+        std::this_thread::sleep_for(std::chrono::duration<float>(sleep_time));
+}
+
+#define fps _fps
+#define FPS(value) cap_fps(value)
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
@@ -53,6 +103,8 @@ inline void window(string title, int width, int height)
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    screen.lastframetime = glfwGetTime();
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -65,7 +117,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 inline bool window_is_open() { return !glfwWindowShouldClose(screen.handle); }
 
 #define RUNNING window_is_open() 
-#define EVENTS glfwPollEvents()
+#define EVENTS glfwPollEvents(); update_delta; FPS(60);
 
 inline void clear(float r, float g, float b, float a)
 {

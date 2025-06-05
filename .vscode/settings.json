@@ -71,6 +71,8 @@
         "ios": "cpp",
         "locale": "cpp",
         "__tree": "cpp",
-        "map": "cpp"
+        "map": "cpp",
+        "ranges": "cpp",
+        "deque": "cpp"
     }
 }
