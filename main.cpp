@@ -4,23 +4,24 @@ int main()
 {
     window("YoKards", 640, 480);
 
-    DebugMap* scene = new DebugMap();
-    scene->init();
+    GOTO<DebugMap>();
+
+    CURRENT_SCENE_INIT;
 
     while (RUNNING)
     {
         EVENTS;
 
-        scene->update();
+        CURRENT_SCENE_UPDATE;
 
         CLEAR_BUFFER;
 
-        scene->draw();
+        CURRENT_SCENE_RENDER;
 
         FLIP_BUFFER;
     }
 
-    scene->exit();
+    CURRENT_SCENE_EXIT;
 
     EXIT;
 }

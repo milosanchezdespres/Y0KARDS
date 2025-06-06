@@ -7,6 +7,7 @@ using namespace std;
 #include "../display/display.h"
 
 #include "../entities/Entity2D.h"
+#include "../systems/TestSystem.h"
 
 struct MapScene : public SpatialScene
 {
@@ -21,6 +22,9 @@ struct MapScene : public SpatialScene
     void __on__init__() override
     {
         SpatialScene::__on__init__();
+
+        attach<TestSystem>();
+        //...
 
         //...
 

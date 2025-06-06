@@ -38,6 +38,8 @@ struct Transform : public Component
     const char* default_name() override{ return "transform"; }
 };
 
+struct DynamicScene;
+
 struct Entity : public Component
 {
     int size;
@@ -79,6 +81,7 @@ struct Entity : public Component
 
         component_aliases[alias] = index;
 
+        dynamic_cast<DynamicScene*>(owner)->template emit_component_add_signal<M>(this->id, static_cast<M*>(components[index]));
         size = components.size();
     }
 
@@ -228,6 +231,7 @@ struct BaseSystem
     vector<int> component_ids;
     vector<int> entity_ids;
     unordered_map<int, int> lookup_table;
+    int size;
 
     DynamicScene* scene;
 
@@ -243,36 +247,40 @@ struct BaseSystem
         __on__start__();
     }
 
-    void upload(int entity_id, int component_id)
+    void upload(int entity_id, int component_local_id)
     {
         entity_ids.push_back(entity_id);
-        component_ids.push_back(component_id);
-        lookup_table[component_id] = component_ids.size() - 1;
-        __on__upload__(entity_id, component_id);
+        component_ids.push_back(component_local_id);
+
+        lookup_table[component_local_id] = component_ids.size() - 1;
+
+        __on__upload__(entity_id, component_local_id);
+
+        size = component_ids.size();
     }
 
     virtual void load(int id) {}
 
     void execute()
     {
-        if(is_render_type == false)
+        if (!is_render_type)
         {
-            for(int id : component_ids)
+            for (size_t i = 0; i < size; ++i)
             {
-                load(id);
-                __on__execute__(id);
+                load(i);
+                __on__execute__(i);
             }
         }
     }
 
     void render()
     {
-        if(is_render_type)
+        if (is_render_type)
         {
-            for(int id : component_ids)
+            for (size_t i = 0; i < size; ++i)
             {
-                load(id);
-                __on__execute__(id);
+                load(i);
+                __on__execute__(i);
             }
         }
     }
@@ -302,11 +310,11 @@ struct System : public BaseSystem
 
     void load(int id) override
     {
-        int internal_component_id = lookup_table[id];
-        int entity_id = entity_ids[lookup_table[id]];
+        int entity_id = entity_ids[id];
+        int component_local_index = component_ids[id];
 
         auto E = entity(entity_id);
-        component = dynamic_cast<M*>(E->component(id));
+        component = dynamic_cast<M*>(E->component(component_local_index));
     }
 
     virtual Entity* entity(int entity_id) { return scene->entity(entity_id); }
@@ -333,6 +341,16 @@ struct DynamicScene : public Scene
         }
 
         return sys;
+    }
+
+    template<typename M>
+    void emit_component_add_signal(int id, M* component)
+    {
+        for (auto* sys : systems) {
+            if (auto* s = dynamic_cast<System<M>*>(sys)) {
+                s->upload(id, component->id);
+            }
+        }
     }
 
     void __on__update__() override
@@ -466,3 +484,13 @@ struct SpatialScene : DynamicScene
 
     virtual void __on__culling__(int id) {}
 };
+
+extern SpatialScene* __current = new SpatialScene();
+#define CURRENT_SCENE __current
+#define CURRENT_SCENE_INIT __current->init();
+#define CURRENT_SCENE_UPDATE __current->update();
+#define CURRENT_SCENE_RENDER __current->draw();
+#define CURRENT_SCENE_EXIT __current->exit();
+
+template <typename C>
+void GOTO() { __current = new C(); }

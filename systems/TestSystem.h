@@ -18,7 +18,8 @@ struct TestSystem : public System<Transform>
 
     void __on__execute__(int component_id) override
     {
-        cout << "executing for [" + to_string(component_id) + "]..." << endl;
+        cout << "executing for [" + to_string(component_id) + " : " + component->name + " ]..." << endl;
+        cout << "............................................................" << endl;
 
         //...
     }
