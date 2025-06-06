@@ -22,6 +22,6 @@ struct DebugMap : public MapScene
 
         //...
 
-        TEXT("this is just a test !", 20, 150, {"#f63535"}, 2);
+        TEXT("this is just a test !", 20, 150, {"#05185f"}, 1);
     }
 };
