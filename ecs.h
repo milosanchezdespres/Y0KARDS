@@ -2,6 +2,8 @@
 
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
+
 #include <type_traits>
 #include <any>
 #include <algorithm>
@@ -204,7 +206,7 @@ struct Scene : public Component
     void init() { __on__init__(); }
     void update() { __on__update__(); }
     void draw() { __on__draw__(); }
-    void exit() { __on__exit__(); FREE_ASSETS; }
+    void exit() { __on__exit__(); }
 
     virtual void __on__init__() {}
     virtual void __on__update__() {}
@@ -219,22 +221,17 @@ struct SpatialScene : Scene
 {
     vector<int> culled;
 
-    std::unordered_map<int, size_t> entity_positions;
-    std::unordered_map<size_t, int> positions_entity;
+    unordered_map<int, size_t> entity_positions;
+    unordered_map<size_t, vector<int>> positions_entities;
+    unordered_set<int> dirty_entities;
 
     SpatialScene() : Scene() {}
     ~SpatialScene()
     {
         entity_positions.clear();
-        positions_entity.clear();
+        positions_entities.clear();
         culled.clear();
-    }
-
-    void __on__push__(Entity* entity)
-    {
-        update_spatial_hash(entity);
-
-        //...
+        dirty_entities.clear();
     }
 
     void update_spatial_hash(Entity* entity)
@@ -264,18 +261,21 @@ struct SpatialScene : Scene
 
             if(old_hashid != new_hashid)
             {
-                positions_entity.erase(old_hashid);
+                auto& old_vec = positions_entities[old_hashid];
+                old_vec.erase(std::remove(old_vec.begin(), old_vec.end(), id), old_vec.end());
+
                 entity_positions[id] = new_hashid;
-                positions_entity[new_hashid] = id;
+                positions_entities[new_hashid].push_back(id);
+
+                dirty_entities.insert(id);
             }
         }
         else
         {
             entity_positions[id] = new_hashid;
-            positions_entity[new_hashid] = id;
+            positions_entities[new_hashid].push_back(id);
+            dirty_entities.insert(id);
         }
-
-        __on__culling__(id);
     }
 
     size_t _hashid(float x, float y)
@@ -289,9 +289,28 @@ struct SpatialScene : Scene
         return (X * prime1) ^ (Y * prime2);
     }
 
-    void __on__draw__() override
-        { for(int id : culled) { entities[culled[id]]->draw(); } }
+    void __on__update__() override
+    {
+        for(auto id : dirty_entities)
+        {
+            __on__culling__(id);
+        }
+        dirty_entities.clear();
+    }
 
+    void __on__draw__() override
+    {
+        for(int id : culled)
+        {
+            if (id < 0 || id >= (int)entities.size())
+            {
+                printf("[WARN] draw() skipping invalid id: %d (entities.size=%lu)\n", id, entities.size());
+                continue;
+            }
+
+            entities[id]->draw();
+        }
+    }
 
     void __on__remove__(int id) override
     {
@@ -299,7 +318,8 @@ struct SpatialScene : Scene
         if(it_pos != entity_positions.end())
         {
             size_t hashid = it_pos->second;
-            positions_entity.erase(hashid);
+            auto& vec = positions_entities[hashid];
+            vec.erase(std::remove(vec.begin(), vec.end(), id), vec.end());
             entity_positions.erase(it_pos);
         }
 

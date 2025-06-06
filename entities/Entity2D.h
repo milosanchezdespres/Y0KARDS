@@ -14,6 +14,16 @@ struct Entity2D : public Entity
         component<Sprite>()->surface = any_cast<Surface>(args[1]);
 
         gload(component<Sprite>()->texture, (texture_path + ".bmp").c_str());
+
+        place(0, 0);
+    }
+
+    void place(float x, float y)
+    {
+        component<Transform>()->x = x; 
+        component<Transform>()->y = y;
+
+        dynamic_cast<SpatialScene*>(owner)->update_spatial_hash(this);
     }
 
     void draw() { __on__draw__(); }
