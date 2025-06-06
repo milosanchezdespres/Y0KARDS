@@ -295,6 +295,7 @@ struct BaseSystem
 template <typename M, typename = std::enable_if_t<std::is_base_of<Component, M>::value>>
 struct System : public BaseSystem
 {
+    using ComponentType = M;
     M* component;
 
     System() : BaseSystem() { component = nullptr; }
@@ -318,10 +319,20 @@ struct DynamicScene : public Scene
     DynamicScene() : Scene() { }
 
     template <typename S>
-    void attach()
+    S* attach()
     {
-        systems.push_back(new S());
-        systems[systems.size() - 1]->start(this);
+        S* sys = new S();
+        systems.push_back(sys);
+        sys->start(this);
+
+        // auto-upload all existing components of type M
+        for (Entity* e : entities)
+        {
+            if (auto c = e->template component<typename S::ComponentType>())
+                sys->upload(e->id, c->id);
+        }
+
+        return sys;
     }
 
     void __on__update__() override
