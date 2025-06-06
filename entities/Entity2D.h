@@ -3,20 +3,26 @@
 #include "../display/display.h"
 
 #include "../components/Sprite.h"
+#include "../components/State.h"
 
 struct Entity2D : public Entity
 {
     SpatialScene* scene;
+
     Sprite* sprite;
     Transform* transform;
+    State* state;
 
     void __on__init__(std::vector<std::any> args) override
     {
         scene = dynamic_cast<SpatialScene*>(owner);
 
         push<Sprite>("");
-
         sprite = component<Sprite>();
+
+        push<State>("");
+        state = component<State>();
+
         transform = component<Transform>();
 
         string texture_path = string(any_cast<const char*>(args[0]));

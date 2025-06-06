@@ -7,7 +7,10 @@ using namespace std;
 #include "../display/display.h"
 
 #include "../entities/Entity2D.h"
-#include "../systems/TestSystem.h"
+//...
+
+#include "../systems/StateMachine.h"
+//...
 
 struct MapScene : public SpatialScene
 {
@@ -23,7 +26,7 @@ struct MapScene : public SpatialScene
     {
         SpatialScene::__on__init__();
 
-        attach<TestSystem>();
+        attach<StateMachine>();
         //...
 
         //...
