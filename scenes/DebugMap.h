@@ -10,9 +10,18 @@ struct DebugMap : public MapScene
     {
         MapScene::__on__init__();
 
-        int id = push<Entity2D>(name, "player/playerwalk", 16, 32, 3);
+        int id = push<Entity2D>(name, "charsets/player", 16, 32, 3);
 
         entity<Entity2D>(id)->sprite->set(1);
         entity<Entity2D>(id)->place(50, 50);
+    }
+
+    void __on__draw__() override
+    {
+        MapScene::__on__draw__();
+
+        //...
+
+        TEXT("this is just a test !", 20, 150, {"#f63535"}, 2);
     }
 };

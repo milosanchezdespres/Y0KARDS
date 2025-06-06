@@ -58,7 +58,7 @@ struct BMP
                 uint8_t g = row[x * 3 + 1];
                 uint8_t r = row[x * 3 + 2];
 
-                Color c = { r / 255.0f, g / 255.0f, b / 255.0f, 1.0f, nullptr };
+                Color c = { r / 255.0f, g / 255.0f, b / 255.0f, 1.0f };
 
                 int index = -1;
                 for (int i = 0; i < palette_size; ++i) 
@@ -138,7 +138,7 @@ struct BMP
 
     void set(int i, int j, float r, float g, float b, float a = 1.0f)
     {
-        Color color = { r, g, b, a, nullptr };
+        Color color = { r, g, b, a };
         set(i, j, color);
     }
 };

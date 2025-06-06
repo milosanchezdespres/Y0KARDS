@@ -120,7 +120,9 @@ inline void ensure_raw_font_loaded() {
 // FUNCTION: Set font color texture
 inline void set_font_color(const Color& color) {
     Texture2D* new_font = generate_colored_font(color);
-    if (active_font_texture != new_font) {
+
+    if (active_font_texture != new_font)
+    {
         active_font_texture = new_font;
         current_font = new_font;
     }
