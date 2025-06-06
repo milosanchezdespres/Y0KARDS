@@ -2,7 +2,15 @@
 
 #include "bmp.h"
 
-#define S(tilex, tiley, tilew, tileh, scalex, scaley) {{tilex, tiley, tilew, tileh}, {scalex, scaley}}
+struct Point { float x, y; };
+
+struct Surface
+{
+    Rect data;
+    Point scale;
+};
+
+#define S(tilex, tiley, tilew, tileh, scalex, scaley) Surface{{tilex, tiley, tilew, tileh}, {scalex, scaley}}
 
 struct Texture2D
 {
@@ -27,14 +35,6 @@ struct Texture2D
     }
 
     void refresh() { data->refresh(); }
-};
-
-struct Point { float x, y; };
-
-struct Surface
-{
-    Rect data;
-    Point scale;
 };
 
 #define IGNORE_OUTBOUNDS_XY(texture, x, y) \

@@ -3,6 +3,7 @@
 #include <vector>
 #include <unordered_map>
 #include <type_traits>
+#include <any>
 using namespace std;
 
 struct game_unit
@@ -17,7 +18,7 @@ struct game_unit
     M* parent() { return dynamic_cast<M*>(owner); }
 
     virtual const char* default_name() { return "game_unit"; }
-    virtual void init() {}
+
     virtual ~game_unit() {}
 };
 
@@ -44,8 +45,15 @@ struct Entity : public Component
         size = 0;
     }
 
-    template <typename M, typename = std::enable_if_t<std::is_base_of<Component, M>::value>>
-    void push(string alias = "")
+    template<typename... Args>
+    void init(Args&&... args)
+    {
+        std::vector<std::any> vec = { std::forward<Args>(args)... };
+        __on__init__(vec);
+    }
+
+    template <typename M, typename... Args, typename = std::enable_if_t<std::is_base_of<Component, M>::value>>
+    void push(string alias, Args&&... args)
     {
         components.push_back(new M());
         int index = (int)components.size() - 1;
@@ -55,7 +63,6 @@ struct Entity : public Component
         components[index]->id = index;
         components[index]->name = alias;
         components[index]->owner = this;
-        components[index]->init();
 
         component_aliases[alias] = index;
 
@@ -82,6 +89,8 @@ struct Entity : public Component
 
         return nullptr;
     }
+
+    virtual void __on__init__(std::vector<std::any> args) {}
 };
 
 struct Scene : public Component
@@ -101,8 +110,8 @@ struct Scene : public Component
         size = 0;
     }
 
-    template <typename M, typename = std::enable_if_t<std::is_base_of<Entity, M>::value>>
-    void push(string alias = "")
+    template <typename M, typename... Args, typename = std::enable_if_t<std::is_base_of<Entity, M>::value>>
+    void push(string alias, Args&&... args)
     {
         entities.push_back(new M());
         int index = (int)entities.size() - 1;
@@ -112,7 +121,7 @@ struct Scene : public Component
         entities[index]->id = index;
         entities[index]->name = alias;
         entities[index]->owner = this;
-        entities[index]->init();
+        entities[index]->init(std::forward<Args>(args)...);
 
         entitie_aliases[alias] = index;
 
@@ -170,7 +179,7 @@ struct Scene : public Component
         return remove(alias);
     }
 
-    void init() override { __on__init__(); }
+    void init() { __on__init__(); }
     void update() { __on__update__(); }
     void draw() { __on__draw__(); }
     void exit() { __on__exit__(); FREE_ASSETS; }

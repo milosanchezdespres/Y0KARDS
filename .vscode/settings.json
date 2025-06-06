@@ -77,6 +77,7 @@
         "valarray": "cpp",
         "set": "cpp",
         "unordered_set": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "any": "cpp"
     }
 }
