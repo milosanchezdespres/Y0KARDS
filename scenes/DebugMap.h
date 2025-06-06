@@ -2,6 +2,8 @@
 
 #include "MapScene.h"
 
+#include "../states/PlayerIdle.h"
+
 struct DebugMap : public MapScene
 {
     DebugMap() : MapScene() {}
@@ -16,6 +18,8 @@ struct DebugMap : public MapScene
         entity<Entity2D>(id)->place(50, 50);
 
         int id2 = push<Entity2D>("test2", "charsets/player", 16, 32, 3);
+
+        entity<Entity2D>(id)->state->go_to<PlayerIdle>();
     }
 
     void __on__draw__() override
