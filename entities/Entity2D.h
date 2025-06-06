@@ -6,24 +6,43 @@
 
 struct Entity2D : public Entity
 {
+    SpatialScene* scene;
+    Sprite* sprite;
+    Transform* transform;
+
     void __on__init__(std::vector<std::any> args) override
     {
+        scene = dynamic_cast<SpatialScene*>(owner);
+
         push<Sprite>("");
 
-        string texture_path = string(any_cast<const char*>(args[0]));
-        component<Sprite>()->surface = any_cast<Surface>(args[1]);
+        sprite = component<Sprite>();
+        transform = component<Transform>();
 
-        gload(component<Sprite>()->texture, (texture_path + ".bmp").c_str());
+        string texture_path = string(any_cast<const char*>(args[0]));
+
+        if (args.size() == 2)
+        {
+            sprite->surface = any_cast<Surface>(args[1]);
+
+            gload(sprite->texture, (texture_path + ".bmp").c_str());
+        }
+        else if (args.size() == 4) 
+        {
+            gload(sprite->texture, (texture_path + ".bmp").c_str());
+
+            sprite->set(0, any_cast<int>(args[1]), any_cast<int>(args[2]), any_cast<int>(args[3]));
+        }
 
         place(0, 0);
     }
 
     void place(float x, float y)
     {
-        component<Transform>()->x = x; 
-        component<Transform>()->y = y;
+        transform->x = x; 
+        transform->y = y;
 
-        dynamic_cast<SpatialScene*>(owner)->update_spatial_hash(this);
+        scene->update_spatial_hash(this);
     }
 
     void draw() { __on__draw__(); }
@@ -34,10 +53,10 @@ struct Entity2D : public Entity
     {
         blit
         (
-            component<Sprite>()->texture, 
-            component<Sprite>()->surface, 
-            component<Transform>()->x, 
-            component<Transform>()->y
+            sprite->texture, 
+            sprite->surface, 
+            transform->x, 
+            transform->y
         );
     }
 };

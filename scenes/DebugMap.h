@@ -10,10 +10,9 @@ struct DebugMap : public MapScene
     {
         MapScene::__on__init__();
 
-        int id = push<Entity2D>(name, "player/playerwalk", S(16, 0, 16, 32, 3, 3));
+        int id = push<Entity2D>(name, "player/playerwalk", 16, 32, 3);
 
+        entity<Entity2D>(id)->sprite->set(1);
         entity<Entity2D>(id)->place(50, 50);
-
-        //...
     }
 };
