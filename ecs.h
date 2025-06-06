@@ -18,9 +18,6 @@ struct game_unit
 
     game_unit() {}
 
-    template <typename M, typename = std::enable_if_t<std::is_base_of<game_unit, M>::value>>
-    M* parent() { return dynamic_cast<M*>(owner); }
-
     virtual const char* default_name() { return "game_unit"; }
 
     virtual ~game_unit() {}
@@ -84,6 +81,8 @@ struct Entity : public Component
 
         size = components.size();
     }
+
+    Component* component(int id) { return components[id]; }
 
     template <typename M, typename = std::enable_if_t<std::is_base_of<Component, M>::value>>
     M* component(int id) { return dynamic_cast<M*>(components[id]); }
@@ -149,6 +148,8 @@ struct Scene : public Component
         size = entities.size();
         return size - 1;
     }
+
+    Entity* entity(int id) { return entities[id]; }
 
     template <typename M, typename = std::enable_if_t<std::is_base_of<Entity, M>::value>>
     M* entity(int id) { return dynamic_cast<M*>(entities[id]); }
@@ -217,7 +218,128 @@ struct Scene : public Component
     virtual void __on__push__(Entity* entity) {}
 };
 
-struct SpatialScene : Scene
+struct DynamicScene;
+
+struct BaseSystem
+{
+    bool enabled;
+    bool is_render_type;
+
+    vector<int> component_ids;
+    vector<int> entity_ids;
+    unordered_map<int, int> lookup_table;
+
+    DynamicScene* scene;
+
+    BaseSystem() { is_render_type = false; scene = nullptr; }
+    ~BaseSystem() { component_ids.clear(); }
+
+    void start(DynamicScene* _scene)
+    {
+        enabled = true;
+
+        scene = _scene;
+
+        __on__start__();
+    }
+
+    void upload(int entity_id, int component_id)
+    {
+        entity_ids.push_back(entity_id);
+        component_ids.push_back(component_id);
+        lookup_table[component_id] = component_ids.size() - 1;
+        __on__upload__(entity_id, component_id);
+    }
+
+    virtual void load(int id) {}
+
+    void execute()
+    {
+        if(is_render_type == false)
+        {
+            for(int id : component_ids)
+            {
+                load(id);
+                __on__execute__(id);
+            }
+        }
+    }
+
+    void render()
+    {
+        if(is_render_type)
+        {
+            for(int id : component_ids)
+            {
+                load(id);
+                __on__execute__(id);
+            }
+        }
+    }
+
+    void stop()
+    {
+        enabled = false;
+
+        __on__stop__();
+    }
+
+    virtual Entity* entity(int entity_id) { return nullptr; }
+
+    virtual void __on__start__() {}
+    virtual void __on__execute__(int id) {}
+    virtual void __on__stop__() {}
+    virtual void __on__upload__(int entity_id, int component_id) {}
+};
+
+template <typename M, typename = std::enable_if_t<std::is_base_of<Component, M>::value>>
+struct System : public BaseSystem
+{
+    M* component;
+
+    System() : BaseSystem() { component = nullptr; }
+
+    void load(int id) override
+    {
+        int internal_component_id = lookup_table[id];
+        int entity_id = entity_ids[lookup_table[id]];
+
+        auto E = entity(entity_id);
+        component = dynamic_cast<M*>(E->component(id));
+    }
+
+    virtual Entity* entity(int entity_id) { return scene->entity(entity_id); }
+};
+
+struct DynamicScene : public Scene
+{
+    vector<BaseSystem*> systems;
+
+    DynamicScene() : Scene() { }
+
+    template <typename S>
+    void attach()
+    {
+        systems.push_back(new S());
+        systems[systems.size() - 1]->start(this);
+    }
+
+    void __on__update__() override
+    {
+        for(BaseSystem* system : systems)
+            { system->execute(); }
+    }
+
+    void __on__draw__() override { __on__render__(); }
+
+    virtual void __on__render__()
+    {
+        for(BaseSystem* system : systems)
+            { system->render(); }
+    }
+};
+
+struct SpatialScene : DynamicScene
 {
     vector<int> culled;
 
@@ -225,7 +347,7 @@ struct SpatialScene : Scene
     unordered_map<size_t, vector<int>> positions_entities;
     unordered_set<int> dirty_entities;
 
-    SpatialScene() : Scene() {}
+    SpatialScene() : DynamicScene() {}
     ~SpatialScene()
     {
         entity_positions.clear();
@@ -291,6 +413,8 @@ struct SpatialScene : Scene
 
     void __on__update__() override
     {
+        DynamicScene::__on__update__();
+
         for(auto id : dirty_entities)
         {
             __on__culling__(id);
@@ -300,6 +424,8 @@ struct SpatialScene : Scene
 
     void __on__draw__() override
     {
+        DynamicScene::__on__draw__();
+
         for(int id : culled)
         {
             if (id < 0 || id >= (int)entities.size())

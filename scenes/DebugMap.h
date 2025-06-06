@@ -2,6 +2,8 @@
 
 #include "MapScene.h"
 
+#include "../systems/TestSystem.h"
+
 struct DebugMap : public MapScene
 {
     DebugMap() : MapScene() {}
@@ -14,6 +16,11 @@ struct DebugMap : public MapScene
 
         entity<Entity2D>(id)->sprite->set(1);
         entity<Entity2D>(id)->place(50, 50);
+
+        attach<TestSystem>();
+
+        systems[0]->upload(id, entity<Entity2D>(id)->transform->id);
+        //...
     }
 
     void __on__draw__() override
