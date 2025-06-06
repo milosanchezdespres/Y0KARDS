@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <type_traits>
 #include <any>
+#include <algorithm>
+
 using namespace std;
 
 struct game_unit
@@ -28,6 +30,15 @@ struct Component : public game_unit
     virtual ~Component() {}
 };
 
+struct Transform : public Component
+{
+    float x, y;
+
+    Transform() : Component() {}
+
+    const char* default_name() override{ return "transform"; }
+};
+
 struct Entity : public Component
 {
     int size;
@@ -49,6 +60,9 @@ struct Entity : public Component
     void init(Args&&... args)
     {
         std::vector<std::any> vec = { std::forward<Args>(args)... };
+
+        push<Transform>("");
+
         __on__init__(vec);
     }
 
@@ -90,7 +104,10 @@ struct Entity : public Component
         return nullptr;
     }
 
+    void draw() { __on__draw__(); }
+
     virtual void __on__init__(std::vector<std::any> args) {}
+    virtual void __on__draw__() {}
 };
 
 struct Scene : public Component
@@ -111,7 +128,7 @@ struct Scene : public Component
     }
 
     template <typename M, typename... Args, typename = std::enable_if_t<std::is_base_of<Entity, M>::value>>
-    void push(string alias, Args&&... args)
+    int push(string alias, Args&&... args)
     {
         entities.push_back(new M());
         int index = (int)entities.size() - 1;
@@ -125,7 +142,10 @@ struct Scene : public Component
 
         entitie_aliases[alias] = index;
 
+        __on__push__(entities[index]);
+
         size = entities.size();
+        return size - 1;
     }
 
     template <typename M, typename = std::enable_if_t<std::is_base_of<Entity, M>::value>>
@@ -155,6 +175,8 @@ struct Scene : public Component
         if(it == entitie_aliases.end()) return false;
 
         int index = it->second;
+
+        __on__remove__(index);
 
         delete entities[index];
         entities.erase(entities.begin() + index);
@@ -188,4 +210,102 @@ struct Scene : public Component
     virtual void __on__update__() {}
     virtual void __on__draw__() {}
     virtual void __on__exit__() {}
+
+    virtual void __on__remove__(int id) {}
+    virtual void __on__push__(Entity* entity) {}
+};
+
+struct SpatialScene : Scene
+{
+    vector<int> culled;
+
+    std::unordered_map<int, size_t> entity_positions;
+    std::unordered_map<size_t, int> positions_entity;
+
+    SpatialScene() : Scene() {}
+    ~SpatialScene()
+    {
+        entity_positions.clear();
+        positions_entity.clear();
+        culled.clear();
+    }
+
+    void __on__push__(Entity* entity)
+    {
+        update_spatial_hash(entity);
+
+        //...
+    }
+
+    void update_spatial_hash(Entity* entity)
+    {
+        int id = entity->id;
+
+        int x = 0, y = 0;
+
+        for(auto* component : entity->components)
+        {
+            auto* transform = dynamic_cast<Transform*>(component);
+
+            if(transform)
+            {
+                x = transform->x;
+                y = transform->y;
+                break;
+            }
+        }
+
+        size_t new_hashid = _hashid(x, y);
+
+        auto it = entity_positions.find(id);
+        if(it != entity_positions.end())
+        {
+            size_t old_hashid = it->second;
+
+            if(old_hashid != new_hashid)
+            {
+                positions_entity.erase(old_hashid);
+                entity_positions[id] = new_hashid;
+                positions_entity[new_hashid] = id;
+            }
+        }
+        else
+        {
+            entity_positions[id] = new_hashid;
+            positions_entity[new_hashid] = id;
+        }
+
+        __on__culling__(id);
+    }
+
+    size_t _hashid(float x, float y)
+    {
+        int X = x;
+        int Y = y;
+
+        static const size_t prime1 = 73856093;
+        static const size_t prime2 = 19349663;
+
+        return (X * prime1) ^ (Y * prime2);
+    }
+
+    void __on__draw__() override
+        { for(int id : culled) { entities[culled[id]]->draw(); } }
+
+
+    void __on__remove__(int id) override
+    {
+        auto it_pos = entity_positions.find(id);
+        if(it_pos != entity_positions.end())
+        {
+            size_t hashid = it_pos->second;
+            positions_entity.erase(hashid);
+            entity_positions.erase(it_pos);
+        }
+
+        auto it_cull = find(culled.begin(), culled.end(), id);
+        if(it_cull != culled.end()) { culled.erase(it_cull); }
+    }
+
+    virtual void __on__culling__(int id) {}
 };

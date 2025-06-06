@@ -1,12 +1,12 @@
 #include "display/display.h"
 #include "ecs.h"
-#include "scenes/DebugMap.h"
+#include "scenes/MapScene.h"
 
 int main()
 {
     window("YoKards", 640, 480);
 
-    DebugMap* scene = new DebugMap();
+    MapScene* scene = new MapScene();
     scene->init();
 
     while (RUNNING)

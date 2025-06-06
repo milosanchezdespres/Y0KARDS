@@ -48,6 +48,12 @@ struct Texture2D
         if ((x) + surf_w < 0 || (x) > SCREEN_WIDTH || (y) + surf_h < 0 || (y) > SCREEN_HEIGHT) \
             return; \
     } while(0)
+
+#define IS_IN_BOUNDS(texture, surface, x, y) \
+    (((x) + (surface).data.width * (surface).scale.x >= 0) && \
+     ((x) <= SCREEN_WIDTH) && \
+     ((y) + (surface).data.height * (surface).scale.y >= 0) && \
+     ((y) <= SCREEN_HEIGHT))
    
 void blit(Texture2D* texture, float x, float y)
 {
