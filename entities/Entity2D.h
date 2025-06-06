@@ -13,7 +13,7 @@ struct Entity2D : public Entity
     Transform* transform;
     State* state;
 
-    void __on__init__(std::vector<std::any> args) override
+    void __on__init__(vector<any> args) override
     {
         scene = dynamic_cast<SpatialScene*>(owner);
 
@@ -25,22 +25,21 @@ struct Entity2D : public Entity
 
         transform = component<Transform>();
 
+        if(args.size() > 0)
+        {
+            __on_texture_load__(args);
+
+            place(0, 0);
+        }
+    }
+
+    virtual void __on_texture_load__(vector<any> args)
+    {
         string texture_path = string(any_cast<const char*>(args[0]));
 
-        if (args.size() == 2)
-        {
-            sprite->surface = any_cast<Surface>(args[1]);
+        gload(sprite->texture, (texture_path + ".bmp").c_str());
 
-            gload(sprite->texture, (texture_path + ".bmp").c_str());
-        }
-        else if (args.size() == 4) 
-        {
-            gload(sprite->texture, (texture_path + ".bmp").c_str());
-
-            sprite->set(0, any_cast<int>(args[1]), any_cast<int>(args[2]), any_cast<int>(args[3]));
-        }
-
-        place(0, 0);
+        sprite->set(0, any_cast<int>(args[1]), any_cast<int>(args[2]), any_cast<int>(args[3]));
     }
 
     void place(float x, float y)

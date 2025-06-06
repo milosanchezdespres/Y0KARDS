@@ -6,11 +6,18 @@ using namespace std;
 #include "../ecs.h"
 #include "../display/display.h"
 
-#include "../entities/Entity2D.h"
+#include "../entities/Character.h"
+//...
+
+#include "../states/PlayerIdle.h"
 //...
 
 #include "../systems/StateMachine.h"
 //...
+
+#define character_width 16
+#define character_height 32
+#define zoom 3
 
 struct MapScene : public SpatialScene
 {
@@ -20,11 +27,21 @@ struct MapScene : public SpatialScene
     bool enable_fps_display;
     Point fps_display;
 
-    MapScene() : SpatialScene() { enable_fps_display = true; }
+    Character* player;
+
+    Point spawn_point;
+
+    MapScene() : SpatialScene()
+    {
+        enable_fps_display = true;
+        player = nullptr;
+    }
 
     void __on__init__() override
     {
         SpatialScene::__on__init__();
+
+        player = spawn<Character, PlayerIdle>("player");
 
         attach<StateMachine>();
         //...
@@ -91,4 +108,22 @@ struct MapScene : public SpatialScene
     }
 
     void __on__exit__() override {  FREE_ASSETS; }
+
+    void respawn(Entity2D* entity) { entity->place(spawn_point.x, spawn_point.y); }
+
+    template <typename C, typename M>
+    C* spawn(string name, string path = "")
+    {
+        if (path == "") path = name;
+
+        vector<std::any> args = { path, character_width, character_height, zoom };
+
+        int id = push<C>(name, args);
+
+        auto* ptr = dynamic_cast<C*>(entity(id));
+        ptr->state->template go_to<M>();
+
+        return ptr;
+    }
+
 };

@@ -2,6 +2,8 @@
 
 #include "MapScene.h"
 
+#include "../entities/NPC.h"
+
 #include "../states/PlayerIdle.h"
 
 struct DebugMap : public MapScene
@@ -12,14 +14,13 @@ struct DebugMap : public MapScene
     {
         MapScene::__on__init__();
 
-        int id = push<Entity2D>("test", "charsets/player", 16, 32, 3);
+        spawn_point = {50, 50};
 
-        entity<Entity2D>(id)->sprite->set(1);
-        entity<Entity2D>(id)->place(50, 50);
+        respawn(player);
 
-        int id2 = push<Entity2D>("test2", "charsets/player", 16, 32, 3);
+        //spawn<NPC, StateData>("npc_test", "charsets/player");
 
-        entity<Entity2D>(id)->state->go_to<PlayerIdle>();
+        //...
     }
 
     void __on__draw__() override

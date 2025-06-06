@@ -5,17 +5,20 @@
 
 struct PlayerIdle : public StateData
 {
-    PlayerIdle() : StateData() {}
+    Character* player;
+
+    PlayerIdle() : StateData() { player = nullptr; }
 
     void __on_enter__() override
     {
-        //...
+        player = dynamic_cast<Character*>(entity);
+        
+        player->sprite->set(1);
     }
 
     void __on_update__() override
     {
         //...
-        cout << entity->name << endl;
     }
 
     void __on_exit__() override
