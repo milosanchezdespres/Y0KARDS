@@ -3,7 +3,7 @@
 
 int main()
 {
-    BMP test = load_bmp("assets/font");
+    BMP test = load_bmp("assets/charsets/player");
 
     test.edit(0, 1, {238, 36, 255});
 

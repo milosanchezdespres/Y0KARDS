@@ -11,11 +11,11 @@ using namespace std;
 
 struct File
 {
-    const char* path;
+    string path;
     vector<uint8_t> bytes;
 };
 
-struct _rgb { uint8_t r, g, b; };
+struct _pixel { uint8_t r, g, b; };
 
 struct BMP : File
 {
@@ -38,14 +38,14 @@ struct BMP : File
         return color;
     }
 
-    void edit(int i, int j, _rgb _color)
+    void edit(int i, int j, _pixel _color)
     {
         int index = i * width + j;
 
         uint32_t color = (_color.r << 16) | (_color.g << 8) | _color.b;
 
         auto it = find(palette.begin(), palette.end(), color);
-        
+
         if (it == palette.end())
         {
             palette.push_back(color);
@@ -85,11 +85,11 @@ inline File load_bytes(const char* path)
     return file;
 }
 
-inline BMP load_bmp(const char* path)
+inline BMP load_bmp(string path)
 {
-    const char* full_path = string(path + string(".bmp")).c_str();
+    string full_path = path + ".bmp";
 
-    File _file = load_bytes(full_path);
+    File _file = load_bytes(full_path.c_str());
     BMP file;
 
     file.path = _file.path;
