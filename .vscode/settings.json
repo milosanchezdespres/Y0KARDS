@@ -79,6 +79,8 @@
         "unordered_set": "cpp",
         "thread": "cpp",
         "any": "cpp",
-        "fstream": "cpp"
+        "fstream": "cpp",
+        "ecsh": "cpp",
+        "typeindex": "cpp"
     }
 }

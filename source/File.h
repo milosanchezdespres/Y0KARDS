@@ -22,6 +22,8 @@ struct BMP : File
     vector<int> pixels;
     vector<uint32_t> palette;
 
+    vector<uint8_t> data;
+
     uint32_t begin;
 
     uint32_t width, height;
@@ -56,6 +58,8 @@ struct BMP : File
         int color_index = distance(palette.begin(), it);
 
         pixels[index] = color_index;
+
+        refresh();
     }
 
     _pixel rgba(int i, int j)
@@ -72,10 +76,9 @@ struct BMP : File
         return _rgba;
     }
 
-    vector<uint8_t> __glfwreadydata;
-    uint8_t* data()
+    uint8_t* refresh()
     {
-        __glfwreadydata = vector<uint8_t>(size * 4);
+        data = vector<uint8_t>(size * 4);
 
         for (int i = 0; i < size; ++i)
         {
@@ -85,13 +88,13 @@ struct BMP : File
             _pixel _rgba;
             _rgba = rgba(I, J);
 
-            __glfwreadydata[i * 4 + 0] = _rgba.r;
-            __glfwreadydata[i * 4 + 1] = _rgba.g;
-            __glfwreadydata[i * 4 + 2] = _rgba.b;
-            __glfwreadydata[i * 4 + 3] = 255;
+            data[i * 4 + 0] = _rgba.r;
+            data[i * 4 + 1] = _rgba.g;
+            data[i * 4 + 2] = _rgba.b;
+            data[i * 4 + 3] = 255;
         }
 
-        return __glfwreadydata.data();
+        return data.data();
     }
 };
 
@@ -170,5 +173,6 @@ inline BMP load_bmp(string path)
         }
     }
 
+    file.refresh();
     return file;
 }
