@@ -15,7 +15,7 @@ struct File
     vector<uint8_t> bytes;
 };
 
-struct _pixel { uint8_t r, g, b; };
+struct _pixel { uint8_t r, g, b; uint8_t a = 255; };
 
 struct BMP : File
 {
@@ -25,6 +25,7 @@ struct BMP : File
     uint32_t begin;
 
     uint32_t width, height;
+    int size;
     int row_byte_size;
 
     uint16_t bpp;
@@ -55,6 +56,42 @@ struct BMP : File
         int color_index = distance(palette.begin(), it);
 
         pixels[index] = color_index;
+    }
+
+    _pixel rgba(int i, int j)
+    {
+        uint32_t color = pixel(i, j);
+
+        _pixel _rgba;
+
+        _rgba.r = (color >> 16) & 0xFF;
+        _rgba.g = (color >> 8) & 0xFF;
+        _rgba.b = color & 0xFF;
+        _rgba.a = 255;
+        
+        return _rgba;
+    }
+
+    vector<uint8_t> __glfwreadydata;
+    uint8_t* data()
+    {
+        __glfwreadydata = vector<uint8_t>(size * 4);
+
+        for (int i = 0; i < size; ++i)
+        {
+            int I = i / width;
+            int J = i % width;
+
+            _pixel _rgba;
+            _rgba = rgba(I, J);
+
+            __glfwreadydata[i * 4 + 0] = _rgba.r;
+            __glfwreadydata[i * 4 + 1] = _rgba.g;
+            __glfwreadydata[i * 4 + 2] = _rgba.b;
+            __glfwreadydata[i * 4 + 3] = 255;
+        }
+
+        return __glfwreadydata.data();
     }
 };
 
@@ -96,13 +133,15 @@ inline BMP load_bmp(string path)
     file.bytes = _file.bytes;
 
     file.begin = byte_to_uint32_t(file.bytes, {10, 11, 12, 13}, {0, 8, 16, 24});
+    
     file.width = byte_to_uint32_t(file.bytes, {18, 19, 20, 21}, {0, 8, 16, 24});
     file.height = byte_to_uint32_t(file.bytes, {22, 23, 24, 25}, {0, 8, 16, 24});
+    file.size = file.width * file.height;
 
     file.bpp = (uint16_t) file.bytes[28] | ((uint16_t) file.bytes[29] << 8);
     file.row_byte_size =  ((file.bpp * file.width + 31) / 32) * 4;
 
-    for (int row = file.height - 1; row >= 0; --row)
+    for (int row = 0; row < file.height; ++row)
     {
         int row_start = file.begin + row * file.row_byte_size;
 
@@ -118,10 +157,16 @@ inline BMP load_bmp(string path)
             uint32_t color = (r << 16) | (g << 8) | b;
 
             auto it = find(file.palette.begin(), file.palette.end(), color);
-            if (it == file.palette.end()) file.palette.push_back(color);
+            
+            if (it == file.palette.end())
+            {
+                file.palette.push_back(color);
+                it = file.palette.end() - 1;
+            }
 
             int color_index = distance(file.palette.begin(), it);
             file.pixels.push_back(color_index);
+
         }
     }
 
