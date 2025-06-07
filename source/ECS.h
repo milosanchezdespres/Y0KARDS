@@ -7,6 +7,9 @@
 #include <vector>
 #include <unordered_map>
 
+#include <algorithm>
+#include <functional>
+
 using std::vector;
 using std::unordered_map;
 
@@ -51,18 +54,102 @@ struct ComponentArray : public IComponentArray
     }
 };
 
+struct ISystem
+{
+    virtual ~ISystem(){}
+    virtual void update(class ECS& ecs) = 0;
+};
+
 struct ECS
 {
     Entity __next_entity_id__;
     unordered_map<type_index, unique_ptr<IComponentArray>> component_arrays;
+    unordered_map<Entity, vector<type_index>> entity_components;
+    unordered_map<type_index, std::function<void(Entity)>> remove_functions;
 
-    ECS() { __next_entity_id__ = -1; }
+    vector<unique_ptr<ISystem>> systems;
+    
+    ECS() { __next_entity_id__ = 0; }
     ~ECS() {}
+
+    void update()
+    {
+        for (auto& system : systems) { system->update(*this); }
+    }
 
     Entity create() { return __next_entity_id__++; }
 
+    template <typename C>
+    void remove_component(Entity e)
+    {
+        auto* compArray = __component_array__<C>();
+
+        auto it = compArray->entities.find(e);
+        if (it == compArray->entities.end()) return;
+
+        type_index typeId = typeid(C);
+
+        // Update entity's component types
+        auto& types = entity_components[e];
+        types.erase(std::remove(types.begin(), types.end(), typeId), types.end());
+        if (types.empty()) entity_components.erase(e);
+
+        // Remove component from ComponentArray
+        ComponentID index_to_remove = it->second;
+        ComponentID last_index = compArray->components.size() - 1;
+
+        // Move last component to the removed spot
+        compArray->components[index_to_remove] = compArray->components[last_index];
+
+        // Find entity that owned last component
+        Entity moved_entity = 0;
+        for (const auto& pair : compArray->entities)
+        {
+            if (pair.second == last_index)
+            {
+                moved_entity = pair.first;
+                break;
+            }
+        }
+
+        // Update moved entity's index to new spot
+        compArray->entities[moved_entity] = index_to_remove;
+
+        // Remove last component entry
+        compArray->components.pop_back();
+        compArray->entities.erase(it);
+    }
+
+    void remove(Entity e)
+    {
+        auto it = entity_components.find(e);
+        if (it == entity_components.end()) return;
+
+        for (auto& typeId : it->second)
+        {
+            auto func_it = remove_functions.find(typeId);
+            if (func_it != remove_functions.end())
+            {
+                // call remove_component<C>(e) through lambda
+                func_it->second(e);  
+            }
+        }
+
+        entity_components.erase(it);
+    }
+
     template<typename C>
-    void add(Entity e, const C& component) { __component_array__<C>()->insert(e, component); }
+    void add(Entity e, const C& component)
+    {
+        __component_array__<C>()->insert(e, component);
+
+        auto& types = entity_components[e];
+        type_index typeId = typeid(C);
+
+        remove_functions[typeId] = [this](Entity e) { remove_component<C>(e); };
+
+        if (std::find(types.begin(), types.end(), typeId) == types.end()) types.push_back(typeId);
+    }
 
     template<typename C>
     C* component(Entity e) { return __component_array__<C>()->get(e); }
@@ -72,7 +159,26 @@ struct ECS
     {
         type_index typeId = typeid(C);
 
-        if (component_arrays.find(typeId) == component_arrays.end()) component_arrays[typeId] = make_unique<ComponentArray<C>>();
+        if (component_arrays.find(typeId) == component_arrays.end())
+        {
+            component_arrays[typeId] = make_unique<ComponentArray<C>>();
+            remove_functions[typeId] = [this](Entity e) { remove_component<C>(e); };
+        }
+
         return static_cast<ComponentArray<C>*>(component_arrays[typeId].get());
     }
+
+    template <typename S, typename... Args>
+    void attach(Args&&... args) { systems.emplace_back(make_unique<S>(std::forward<Args>(args)...)); }
+
+    template<typename C, typename Func>
+    void foreach(Func&& func)
+    {
+        auto* component_array = __component_array__<C>();
+
+        for (auto& [entity, index] : component_array->entities)
+        { func(entity, component_array->components[index]); }
+    }
 };
+
+inline ECS ecs;
