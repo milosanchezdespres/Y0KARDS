@@ -24,7 +24,6 @@ using ComponentID = size_t;
 struct IComponent
 {
     virtual ~IComponent() {}
-    virtual void init(void* data) = 0;
 };
 
 struct IComponentArray
@@ -89,19 +88,15 @@ struct ECS
 
         type_index typeId = typeid(C);
 
-        // Update entity's component types
         auto& types = entity_components[e];
         types.erase(std::remove(types.begin(), types.end(), typeId), types.end());
         if (types.empty()) entity_components.erase(e);
 
-        // Remove component from ComponentArray
         ComponentID index_to_remove = it->second;
         ComponentID last_index = compArray->components.size() - 1;
 
-        // Move last component to the removed spot
         compArray->components[index_to_remove] = compArray->components[last_index];
 
-        // Find entity that owned last component
         Entity moved_entity = 0;
         for (const auto& pair : compArray->entities)
         {
@@ -112,10 +107,8 @@ struct ECS
             }
         }
 
-        // Update moved entity's index to new spot
         compArray->entities[moved_entity] = index_to_remove;
 
-        // Remove last component entry
         compArray->components.pop_back();
         compArray->entities.erase(it);
     }
@@ -130,7 +123,6 @@ struct ECS
             auto func_it = remove_functions.find(typeId);
             if (func_it != remove_functions.end())
             {
-                // call remove_component<C>(e) through lambda
                 func_it->second(e);  
             }
         }

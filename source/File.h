@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <vector>
 #include <algorithm>
 #include <unordered_map>
@@ -15,9 +16,13 @@ struct File
     vector<uint8_t> bytes;
 };
 
-struct _pixel { uint8_t r, g, b; uint8_t a = 255; };
+struct TEXT : public File
+{
+    string str;
+};
 
-struct BMP : File
+struct _pixel { uint8_t r, g, b; uint8_t a = 255; };
+struct BMP : public File
 {
     vector<int> pixels;
     vector<uint32_t> palette;
@@ -174,5 +179,22 @@ inline BMP load_bmp(string path)
     }
 
     file.refresh();
+    return file;
+}
+
+inline TEXT load_as_string(string path, string ext)
+{
+    string full_path = path + "." + ext;
+
+    TEXT file;
+    file.path = full_path;
+
+    ifstream file_stream(full_path);
+
+    stringstream buffer;
+    buffer << file_stream.rdbuf(); 
+
+    file.str = buffer.str();
+
     return file;
 }
