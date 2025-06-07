@@ -3,6 +3,7 @@
 #include <array>
 #include <string.h>
 #include <iostream>
+#include <cstdint>
 using namespace std;
 
 struct RGBA
@@ -39,6 +40,15 @@ struct RGBA
         buffer[9] = '\0';
 
         return string(buffer);
+    }
+
+    uint32_t ID()
+    {
+        uint8_t _r = r;
+        uint8_t _g = g;
+        uint8_t _b = b;
+
+        return (_r << 16) | (_g << 8) | _b;
     }
 
     void __int_to_hex2(int val, char out[3]) const { snprintf(out, 3, "%02X", val & 0xFF); }
@@ -83,6 +93,15 @@ struct HEX
     int b() const { return __hex_to_int(BB); }
     int a() const { return AA[0] ? __hex_to_int(AA) : 255; } 
 
+    uint32_t ID()
+    {
+        uint8_t _r = r();
+        uint8_t _g = g();
+        uint8_t _b = b();
+
+        return (_r << 16) | (_g << 8) | _b;
+    }
+
     int __hex_to_int(const char* hex) const
     {
         int value = 0;
@@ -92,6 +111,14 @@ struct HEX
 };
 
 inline RGBA to_rgba(const HEX& hex) { return RGBA(hex.r(), hex.g(), hex.b(), hex.a()); }
+inline RGBA to_rgba(int color_index)
+{
+    float r = (color_index >> 16) & 0xFF;
+    float g = (color_index >> 8) & 0xFF;
+    float b = color_index & 0xFF;
+
+    return {r, g, b};
+}
 inline HEX to_hex(const RGBA& rgba) { return HEX(rgba.str().c_str()); }
 
 namespace std
